@@ -82,6 +82,12 @@ export default {
         rel: 'stylesheet',
         type: 'text/css',
         href: 'https://cdn.jsdelivr.net/docsearch.js/2/docsearch.min.css'
+      },
+      {
+        rel="alternate",
+        type="application/rss+xml",
+        title="Subscribe to Blog rss",
+        href="/blog.xml"
       }
     ],
     bodyAttrs: {
@@ -124,13 +130,6 @@ export default {
       cacheTime: 1000 * 60 * 15,
       type: 'rss2',
       data: [ 'blog', 'xml' ]
-    },
-    {
-      path: '/feed.json',
-      create,
-      cacheTime: 1000 * 60 * 15,
-      type: 'json1',
-      data: [ 'blog', 'json' ]
     }
   ],
   pwa: {
