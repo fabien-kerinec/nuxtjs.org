@@ -1,4 +1,39 @@
 import webpack from 'webpack'
+const fs = require('fs').promises;
+const path = require('path');
+
+let posts = [];
+
+const constructFeedItem = async (post, dir, hostname) => {  
+  console.log("in construct func");
+  const url = `${hostname}/${dir}/${post.slug}`;
+  return {
+    title: post.title,
+    id: url,
+    link: url,
+    description: post.description,
+    content: post.bodyPlainText
+  }
+} 
+const create = async (feed, args) => {
+  const [filePath, ext] = args;
+  const local = process.env.NUXT_LOCALE ? process.env.NUXT_LOCALE : 'en'
+  const hostname = process.NODE_ENV === 'production' ? local === 'en' ? 'https://nuxtjs.org' : 'https://'+ local +'.nuxtjs.org' : 'http://localhost:3000'
+  feed.options = {
+    title: "NuxtJS blog",
+    description: "Discover articles from the NuxtJS team and NuxtJS Community about NuxtJS, tips and tricks included!",
+    link: `${hostname}/feed.${ext}`
+  }
+  const { $content } = require('@nuxt/content')
+  if (posts === null || posts.length === 0)
+    posts = await $content(local, filePath).fetch();
+  for (const post of posts) {
+    const feedItem = await constructFeedItem(post, filePath, hostname);
+    feed.addItem(feedItem);
+  }
+  return feed;
+}
+
 
 export default {
   target: 'static',
@@ -79,9 +114,25 @@ export default {
     '@nuxt/http',
     '@nuxt/content',
     'nuxt-i18n',
-    'vue-scrollto/nuxt'
+    'vue-scrollto/nuxt',
+    '@nuxtjs/feed'
   ],
-
+  feed: [
+    {
+      path: '/feed.xml',
+      create,
+      cacheTime: 1000 * 60 * 15,
+      type: 'rss2',
+      data: [ 'blog', 'xml' ]
+    },
+    {
+      path: '/feed.json',
+      create,
+      cacheTime: 1000 * 60 * 15,
+      type: 'json1',
+      data: [ 'blog', 'json' ]
+    }
+  ],
   pwa: {
     manifest: {
       name: 'NuxtJS',
@@ -140,6 +191,7 @@ export default {
     fallback: false,
     routes: ['/', '404']
   },
+  
   i18n: {
     strategy: 'no_prefix',
     locales: [
@@ -243,10 +295,13 @@ export default {
     ]
   },
   hooks: {
-    'content:file:beforeInsert': item => {
+    'content:file:beforeInsert': (item) => {
       const stats = require('reading-time')(item.text)
 
       item.readingTime = stats
+      if (item.extension === '.md') {      
+        item.bodyPlainText = item.text;
+      }
     }
   }
 }
